@@ -1,5 +1,5 @@
 # clicalc
-command line rpn calculator
+command line rpn calculator with persistent stack
 
 Meant to simulate the functionality of hp stack based rpn calculators.  To make it most useful, chmod +x the python file and symlink to it from somewhere in your PATH with some short name.
 
