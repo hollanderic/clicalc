@@ -4,6 +4,7 @@ import os
 import sys
 import ast
 import string
+import math,cmath
 
 class rpn:
     def __init__(self,fname=None):
@@ -24,13 +25,15 @@ class rpn:
                         value=string.strip(line)
                     self.stack.insert(0,value)
 
-        self.commands= {    "drop":self.drop   ,   "add":self.add  , "sub":self.sub    ,   "mult":self.mult    ,
-                            "div":self.div }
+        self.commands= {    "drop":self.drop,   "add":self.add,     "sub":self.sub,     "mult":self.mult    ,
+                            "div":self.div,     "sqrt":self.sqrt,   "sqr":self.sqr,     "copy":self.copy,
+                            "sin":self.sin,     "cos":self.cos,     "tan":self.tan,     "asin":self.asin,
+                            "acos":self.acos,   "atan":self.atan,}
                     
     def __str__(self):
         s=""
         for i in range(len(self.stack)-1,-1,-1):
-            s= s + "%3d%030s\n"%(i,str(self.stack[i]))
+            s= s + "%3d:%040s\n"%(i,str(self.stack[i]))
         if self.statstrings:
             s=s+"-----------------------"
         for item in self.statstrings:
@@ -109,7 +112,6 @@ class rpn:
             self.error=True
             self.stack.pop(command_position)
             return command_position
-        pass
     
  
     def sub(self,command_position):
@@ -124,7 +126,6 @@ class rpn:
             self.error=True
             self.stack.pop(command_position)
             return command_position
-        pass
  
     def mult(self,command_position):
         try:
@@ -138,7 +139,6 @@ class rpn:
             self.error=True
             self.stack.pop(command_position)
             return command_position
-        pass
 
     def div(self,command_position):
         try:
@@ -152,9 +152,138 @@ class rpn:
             self.error=True
             self.stack.pop(command_position)
             return command_position
-        pass
   
-    
+    def sqrt(self,command_position):
+        try:
+            if type(self.stack[command_position+1])==complex:
+                value=cmath.sqrt(self.stack[command_position+1])
+            else:
+                value=math.sqrt(self.stack[command_position+1])
+            self.stack.pop(command_position+1)
+            self.stack[command_position]=value    
+            return command_position
+        except:
+            self.statstrings.append("Bad square root attempted, dropping command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
+
+    def sqr(self,command_position):
+        try:
+            value=(self.stack[command_position+1])**2
+            self.stack.pop(command_position+1)
+            self.stack[command_position]=value    
+            return command_position
+        except:
+            self.statstrings.append("Bad square attempted, dropping command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
+
+    def copy(self,command_position):
+        try:
+            self.stack[command_position]=self.stack[command_position+1]
+            return command_position
+        except:
+            self.stack.pop(command_position)
+            return command_position
+
+    def sin(self,command_position):
+        try:
+            if type(self.stack[command_position+1])==complex:
+                value=cmath.sin(self.stack[command_position+1])
+            else:
+                value=math.sin(self.stack[command_position+1])
+            self.stack.pop(command_position+1)
+            self.stack[command_position]=value    
+            return command_position
+        except:
+            self.statstrings.append("Bad sine attempted, dropping command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
+ 
+    def cos(self,command_position):
+        try:
+            if type(self.stack[command_position+1])==complex:
+                value=cmath.cos(self.stack[command_position+1])
+            else:
+                value=math.cos(self.stack[command_position+1])
+            self.stack.pop(command_position+1)
+            self.stack[command_position]=value    
+            return command_position
+        except:
+            self.statstrings.append("Bad cosine attempted, dropping command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
+ 
+
+    def tan(self,command_position):
+        try:
+            if type(self.stack[command_position+1])==complex:
+                value=cmath.tan(self.stack[command_position+1])
+            else:
+                value=math.tan(self.stack[command_position+1])
+            self.stack.pop(command_position+1)
+            self.stack[command_position]=value    
+            return command_position
+        except:
+            self.statstrings.append("Bad tangent attempted, dropping command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
+ 
+
+    def asin(self,command_position):
+        try:
+            if ((type(self.stack[command_position+1])==complex) or (self.stack[command_position+1]>1)):
+                value=cmath.asin(self.stack[command_position+1])
+            else:
+                value=math.asin(self.stack[command_position+1])
+            self.stack.pop(command_position+1)
+            self.stack[command_position]=value    
+            return command_position
+        except:
+            self.statstrings.append("Bad arc sine attempted, dropping command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
+ 
+    def acos(self,command_position):
+        try:
+            if ((type(self.stack[command_position+1])==complex) or (self.stack[command_position+1]>1)):
+                value=cmath.acos(self.stack[command_position+1])
+            else:
+                value=math.acos(self.stack[command_position+1])
+            self.stack.pop(command_position+1)
+            self.stack[command_position]=value    
+            return command_position
+        except:
+            self.statstrings.append("Bad arc cosine attempted, dropping command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
+ 
+
+    def atan(self,command_position):
+        try:
+            if type(self.stack[command_position+1])==complex:
+                value=cmath.atan(self.stack[command_position+1])
+            else:
+                value=math.atan(self.stack[command_position+1])
+            self.stack.pop(command_position+1)
+            self.stack[command_position]=value    
+            return command_position
+        except:
+            self.statstrings.append("Bad arc tangent attempted, dropping command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
+ 
+
+
+
 
 clicalc = rpn(os.getenv('HOME')+'/.clicalc')
 
