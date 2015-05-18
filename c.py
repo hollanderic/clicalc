@@ -11,6 +11,7 @@ class rpn:
         self.stack=[]
         self.fname = fname
         self.error=False
+        self.hex=False
         self.statstrings=[]
 
         if self.fname:
@@ -32,12 +33,23 @@ class rpn:
                             "sin":self.sin,     "cos":self.cos,
                             "tan":self.tan,     "asin":self.asin,
                             "acos":self.acos,   "atan":self.atan,
+                            "hex":self.hexadec,
                         }
 
     def __str__(self):
         s=""
         for i in range(len(self.stack)-1,-1,-1):
-            s= s + "%3d:%040s\n"%(i,str(self.stack[i]))
+            optstr=""
+            if self.hex:
+                try:
+                    if type(self.stack[i])==str:
+                        for c in self.stack[i]:
+                            optstr=optstr+"%02X "%ord(c)
+                    else:
+                        optstr="0x%X"%self.stack[i]
+                except:
+                    optstr="----"
+            s= s + "%3d:%040s    %s\n"%(i,str(self.stack[i]),optstr)
         if self.statstrings:
             s=s+"-----------------------"
         for item in self.statstrings:
@@ -50,8 +62,9 @@ class rpn:
             command = self.stack[position]
             #print "%d   %s"%(position,str(command))
             if type(command) == str:
-                if command in self.commands.keys():
-                    position=self.commands[command](position)
+                command=command.split(":")
+                if command[0] in self.commands.keys():
+                    position=self.commands[command[0]](position,command[1:])
                 else:
                     position = position + 1
             else:
@@ -80,26 +93,35 @@ class rpn:
 ##          stack reordering, and returning a stack position where processing
 ##          can continue after command execution.
 
-    def drop(self,command_position=0,value_position=-1):  #position contains position of this command within stack
-        if len(self.stack)==1:
-            self.stack.pop(command_position)
-            return command_position
-
-        if value_position == command_position:
-            self.stack.pop(command_position)            #Handle case of user explicitly dropping the drop
-            return command_position
-
-        elif value_position==-1:                        #typical case
-            self.stack.pop(0)
-            self.stack.pop(0)
-            return command_position
-
+    def drop(self,command_position,args):  #position contains position of this command within stack
+        if args:
+            try:
+                value_position=int(args[0])+1   # add one to account for fact the command is on the stack now
+            except:
+                value_position=-1
         else:
-            self.stack.pop(value_position)
+            value_position=-1
+        try:
+            if len(self.stack)==1:
+                self.stack.pop(command_position)
+                return command_position
+
+            if value_position==-1:                        #typical case
+                self.stack.pop(0)
+                self.stack.pop(0)
+                return command_position
+
+            else:
+                self.stack.pop(value_position)
+                self.stack.pop(command_position)
+                return command_position
+        except:
+            self.statstrings.append("Bad drop attempted, ignoring command")
+            self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def add(self,command_position):
+    def add(self,command_position,args):
         try:
             value=self.stack[command_position+1] + self.stack[command_position+2]
             self.stack.pop(command_position+1)
@@ -107,12 +129,12 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad additition attempted, dropping command")
+            self.statstrings.append("Bad additition attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def sub(self,command_position):
+    def sub(self,command_position,args):
         try:
             value=self.stack[command_position+2] - self.stack[command_position+1]
             self.stack.pop(command_position+1)
@@ -120,12 +142,12 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad subtraction attempted, dropping command")
+            self.statstrings.append("Bad subtraction attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def mult(self,command_position):
+    def mult(self,command_position,args):
         try:
             value=self.stack[command_position+1] * self.stack[command_position+2]
             self.stack.pop(command_position+1)
@@ -133,12 +155,12 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad multiplication attempted, dropping command")
+            self.statstrings.append("Bad multiplication attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def div(self,command_position):
+    def div(self,command_position,args):
         try:
             value=self.stack[command_position+2] / float(self.stack[command_position+1])
             self.stack.pop(command_position+1)
@@ -146,12 +168,12 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad division attempted, dropping command")
+            self.statstrings.append("Bad division attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def sqrt(self,command_position):
+    def sqrt(self,command_position,args):
         try:
             if type(self.stack[command_position+1])==complex:
                 value=cmath.sqrt(self.stack[command_position+1])
@@ -161,24 +183,24 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad square root attempted, dropping command")
+            self.statstrings.append("Bad square root attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def sqr(self,command_position):
+    def sqr(self,command_position,args):
         try:
             value=(self.stack[command_position+1])**2
             self.stack.pop(command_position+1)
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad square attempted, dropping command")
+            self.statstrings.append("Bad square attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def copy(self,command_position):
+    def copy(self,command_position,args):
         try:
             self.stack[command_position]=self.stack[command_position+1]
             return command_position
@@ -186,7 +208,7 @@ class rpn:
             self.stack.pop(command_position)
             return command_position
 
-    def sin(self,command_position):
+    def sin(self,command_position,args):
         try:
             if type(self.stack[command_position+1])==complex:
                 value=cmath.sin(self.stack[command_position+1])
@@ -196,12 +218,12 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad sine attempted, dropping command")
+            self.statstrings.append("Bad sine attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def cos(self,command_position):
+    def cos(self,command_position,args):
         try:
             if type(self.stack[command_position+1])==complex:
                 value=cmath.cos(self.stack[command_position+1])
@@ -211,12 +233,12 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad cosine attempted, dropping command")
+            self.statstrings.append("Bad cosine attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def tan(self,command_position):
+    def tan(self,command_position,args):
         try:
             if type(self.stack[command_position+1])==complex:
                 value=cmath.tan(self.stack[command_position+1])
@@ -226,12 +248,12 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad tangent attempted, dropping command")
+            self.statstrings.append("Bad tangent attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def asin(self,command_position):
+    def asin(self,command_position,args):
         try:
             if ((type(self.stack[command_position+1])==complex) or (self.stack[command_position+1]>1)):
                 value=cmath.asin(self.stack[command_position+1])
@@ -241,12 +263,12 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad arc sine attempted, dropping command")
+            self.statstrings.append("Bad arc sine attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def acos(self,command_position):
+    def acos(self,command_position,args):
         try:
             if ((type(self.stack[command_position+1])==complex) or (self.stack[command_position+1]>1)):
                 value=cmath.acos(self.stack[command_position+1])
@@ -256,12 +278,12 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad arc cosine attempted, dropping command")
+            self.statstrings.append("Bad arc cosine attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
 
-    def atan(self,command_position):
+    def atan(self,command_position,args):
         try:
             if type(self.stack[command_position+1])==complex:
                 value=cmath.atan(self.stack[command_position+1])
@@ -271,7 +293,17 @@ class rpn:
             self.stack[command_position]=value
             return command_position
         except:
-            self.statstrings.append("Bad arc tangent attempted, dropping command")
+            self.statstrings.append("Bad arc tangent attempted, ignoring command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
+    def hexadec(self,command_position,args):
+        try:
+            self.hex=True
+            self.stack.pop(command_position)
+            return command_position
+        except:
+            self.statstrings.append("failed hex mode attempted, ignoring command")
             self.error=True
             self.stack.pop(command_position)
             return command_position
