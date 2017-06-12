@@ -12,6 +12,7 @@ class rpn:
         self.fname = fname
         self.error=False
         self.hex=False
+        self.options=""
         self.statstrings=[]
 
         if self.fname:
@@ -24,7 +25,12 @@ class rpn:
                         value=ast.literal_eval(string.strip(line))
                     except:
                         value=string.strip(line)
-                    self.stack.insert(0,value)
+                    if type(value) == str:
+                        if value[0:4] == "opt:":
+                            #print "Options = %s"%value
+                            self.options=value
+                    else:
+                        self.stack.insert(0,value)
 
         self.commands= {    "drop":self.drop,   "add":self.add,
                             "sub":self.sub,     "mult":self.mult,
@@ -33,11 +39,11 @@ class rpn:
                             "sin":self.sin,     "cos":self.cos,
                             "tan":self.tan,     "asin":self.asin,
                             "acos":self.acos,   "atan":self.atan,
-                            "hex":self.hexadec,
+                            "hex":self.hexadec, "+":self.add,
                         }
 
     def __str__(self):
-        s=""
+        s="Options: %s\n"%self.options
         for i in range(len(self.stack)-1,-1,-1):
             optstr=""
             if self.hex:
@@ -83,6 +89,7 @@ class rpn:
             return(0)       #safety lock - if there was an error in command line, don't overwrite stack
         if self.fname:
             stackfd = open(self.fname,"w+")
+            stackfd.write("%s\n"%str(self.options))
 
             for i in range(len(self.stack)-1,-1,-1):
                 stackfd.write("%s\n"%str(self.stack[i]))
@@ -307,7 +314,16 @@ class rpn:
             self.error=True
             self.stack.pop(command_position)
             return command_position
-
+    def options(self,command_position,args):
+        try:
+            self.hex=True
+            self.stack.pop(command_position)
+            return command_position
+        except:
+            self.statstrings.append("failed hex mode attempted, ignoring command")
+            self.error=True
+            self.stack.pop(command_position)
+            return command_position
 clicalc = rpn(os.getenv('HOME')+'/.clicalc')
 
 if len(sys.argv)>1:
