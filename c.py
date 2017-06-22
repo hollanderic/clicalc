@@ -20,6 +20,13 @@ class cli_hook(object):
 
     def ini(self):
         pass
+    def deg2rad(self,angle):
+        # if in radians mode, does nothing, if in degree it will convert
+        #  angle (assumed to be in degrees) to radians
+        if self.parent.radians:
+            return angle
+        else:
+            return math.radians(angle)
 
     def exe(self,command_position):
         ##TODO - parse the command string to see if it should operate on
@@ -37,7 +44,7 @@ class cli_hook(object):
     def __str__(self):
         return self.desc
 
-### Implementation fo the operation hooks
+### Implementation for the operation hooks
 class add(cli_hook):
     def ini(self):
         self.names.append("+")
@@ -95,7 +102,27 @@ class sine(cli_hook):
         if type(args[1])==complex:
             return cmath.sin(args[1])
         else:
-            return math.sin(args[1])
+            return math.sin(self.deg2rad(args[1]))
+
+class cos(cli_hook):
+    def ini(self):
+        self.args=1
+        self.desc="cosine of previous argument in stack"
+    def run(self,args):
+        if type(args[1])==complex:
+            return cmath.cos(args[1])
+        else:
+            return math.cos(self.deg2rad(args[1]))
+
+class tan(cli_hook):
+    def ini(self):
+        self.args=1
+        self.desc="tangent of previous argument in stack"
+    def run(self,args):
+        if type(args[1])==complex:
+            return cmath.tan(args[1])
+        else:
+            return math.tan(self.deg2rad(args[1]))
 
 class delete(cli_hook):
     def ini(self):
@@ -115,6 +142,7 @@ class rpn:
         self.error=False
         self.hex=False
         self.options=""
+        self.radians=False
         self.statstrings=[]
 
         if self.fname:
@@ -241,30 +269,6 @@ class rpn:
         except:
             self.stack.pop(command_position)
             return command_position
-
-    def cos(self,command_position,args):
-        try:
-            if type(self.stack[command_position+1])==complex:
-                value=cmath.cos(self.stack[command_position+1])
-            else:
-                value=math.cos(self.stack[command_position+1])
-            self.stack.pop(command_position+1)
-            self.stack[command_position]=value
-            return command_position
-        except:
-            return self.err_handler(command_position,"Bad cosine attempted, ignoring command")
-
-    def tan(self,command_position,args):
-        try:
-            if type(self.stack[command_position+1])==complex:
-                value=cmath.tan(self.stack[command_position+1])
-            else:
-                value=math.tan(self.stack[command_position+1])
-            self.stack.pop(command_position+1)
-            self.stack[command_position]=value
-            return command_position
-        except:
-            return self.err_handler(command_position,"Bad tangent attempted, ignoring command")
 
     def asin(self,command_position,args):
         try:
