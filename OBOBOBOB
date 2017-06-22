@@ -1,0 +1,248 @@
+[1mdiff --git a/c.py b/c.py[m
+[1mindex 21f6880..df1d3d2 100755[m
+[1m--- a/c.py[m
+[1m+++ b/c.py[m
+[36m@@ -28,7 +28,7 @@[m [mclass rpn:[m
+                     if type(value) == str:[m
+                         if value[0:4] == "opt:":[m
+                             #print "Options = %s"%value[m
+[31m-                            self.options=value[m
+[32m+[m[32m                            self.options=value.split(":")[1][m
+                     else:[m
+                         self.stack.insert(0,value)[m
+ [m
+[36m@@ -63,10 +63,11 @@[m [mclass rpn:[m
+         return s[m
+ [m
+     def process(self):  # processes the stack[m
+[32m+[m[32m        print "process"[m
+         position = 0[m
+         while position < len(self.stack):[m
+             command = self.stack[position][m
+[31m-            #print "%d   %s"%(position,str(command))[m
+[32m+[m[32m            print "%d   %s"%(position,str(command))[m
+             if type(command) == str:[m
+                 command=command.split(":")[m
+                 if command[0] in self.commands.keys():[m
+[36m@@ -78,18 +79,26 @@[m [mclass rpn:[m
+ [m
+     def pushargs(self,args):[m
+         for a in args:[m
+[32m+[m[32m            print a[m
+             try:[m
+                 value=ast.literal_eval(string.strip(a))[m
+             except:[m
+                 value=string.strip(a)[m
+[31m-            self.stack.insert(0,value)[m
+[32m+[m[32m            print "value =%s"%str(value)[m
+[32m+[m[32m            if type(value) == str:[m
+[32m+[m[32m                if value[0:4] == "opt:":[m
+[32m+[m[32m                    self.options=value.split(":")[1][m
+[32m+[m[32m                else:[m
+[32m+[m[32m                    self.stack.insert(0,value)[m
+[32m+[m[32m            else:[m
+[32m+[m[32m                self.stack.insert(0,value)[m
+ [m
+     def save(self,fname=None):[m
+         if self.error:[m
+             return(0)       #safety lock - if there was an error in command line, don't overwrite stack[m
+         if self.fname:[m
+             stackfd = open(self.fname,"w+")[m
+[31m-            stackfd.write("%s\n"%str(self.options))[m
+[32m+[m[32m            stackfd.write("opt:%s\n"%str(self.options))[m
+ [m
+             for i in range(len(self.stack)-1,-1,-1):[m
+                 stackfd.write("%s\n"%str(self.stack[i]))[m
+[36m@@ -99,6 +108,11 @@[m [mclass rpn:[m
+ ##      Commands are responsible for checking for errors, executing,[m
+ ##          stack reordering, and returning a stack position where processing[m
+ ##          can continue after command execution.[m
+[32m+[m[32m    def err_handler(self,command_position,message):[m
+[32m+[m[32m        self.statstrings.append(message)[m
+[32m+[m[32m        self.error=True[m
+[32m+[m[32m        self.stack.pop(command_position)[m
+[32m+[m[32m        return command_position[m
+ [m
+     def drop(self,command_position,args):  #position contains position of this command within stack[m
+         if args:[m
+[36m@@ -123,10 +137,7 @@[m [mclass rpn:[m
+                 self.stack.pop(command_position)[m
+                 return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad drop attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return err_handler(command_position,"Bad drop attempted, ignoring command")[m
+ [m
+     def add(self,command_position,args):[m
+         try:[m
+[36m@@ -136,10 +147,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad additition attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad additition attempted, ignoring command")[m
+ [m
+     def sub(self,command_position,args):[m
+         try:[m
+[36m@@ -149,10 +157,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad subtraction attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad subtraction attempted, ignoring command")[m
+ [m
+     def mult(self,command_position,args):[m
+         try:[m
+[36m@@ -162,10 +167,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad multiplication attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad multiplication attempted, ignoring command")[m
+ [m
+     def div(self,command_position,args):[m
+         try:[m
+[36m@@ -175,10 +177,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad division attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad division attempted, ignoring command")[m
+ [m
+     def sqrt(self,command_position,args):[m
+         try:[m
+[36m@@ -190,10 +189,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad square root attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad square root attempted, ignoring command")[m
+ [m
+     def sqr(self,command_position,args):[m
+         try:[m
+[36m@@ -202,10 +198,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad square attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad square attempted, ignoring command")[m
+ [m
+     def copy(self,command_position,args):[m
+         try:[m
+[36m@@ -225,10 +218,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad sine attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad sine attempted, ignoring command")[m
+ [m
+     def cos(self,command_position,args):[m
+         try:[m
+[36m@@ -240,10 +230,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad cosine attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad cosine attempted, ignoring command")[m
+ [m
+     def tan(self,command_position,args):[m
+         try:[m
+[36m@@ -255,10 +242,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad tangent attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad tangent attempted, ignoring command")[m
+ [m
+     def asin(self,command_position,args):[m
+         try:[m
+[36m@@ -270,10 +254,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad arc sine attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad arc sine attempted, ignoring command")[m
+ [m
+     def acos(self,command_position,args):[m
+         try:[m
+[36m@@ -285,10 +266,7 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad arc cosine attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad arc cosine attempted, ignoring command")[m
+ [m
+     def atan(self,command_position,args):[m
+         try:[m
+[36m@@ -300,30 +278,24 @@[m [mclass rpn:[m
+             self.stack[command_position]=value[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("Bad arc tangent attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"Bad arc tangent attempted, ignoring command")[m
+[32m+[m
+     def hexadec(self,command_position,args):[m
+         try:[m
+             self.hex=True[m
+             self.stack.pop(command_position)[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("failed hex mode attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"failed hex mode attempted, ignoring command")[m
+[32m+[m
+     def options(self,command_position,args):[m
+         try:[m
+             self.hex=True[m
+             self.stack.pop(command_position)[m
+             return command_position[m
+         except:[m
+[31m-            self.statstrings.append("failed hex mode attempted, ignoring command")[m
+[31m-            self.error=True[m
+[31m-            self.stack.pop(command_position)[m
+[31m-            return command_position[m
+[32m+[m[32m            return self.err_handler(command_position,"failed hex mode attempted, ignoring command")[m
+[32m+[m
+ clicalc = rpn(os.getenv('HOME')+'/.clicalc')[m
+ [m
+ if len(sys.argv)>1:[m
