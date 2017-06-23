@@ -10,23 +10,29 @@ import math,cmath
 #     put most of the boilerplate stuff here so the hook
 #     implementations can be short
 class cli_hook(object):
+    aliases = []
+    desc = ""
+    args = 2 # default
     def __init__(self,parent):
         self.parent = parent
-        self.args = 2 #default, ini should override otherwise
-        self.desc = ""
-        self.names = [self.__class__.__name__]
         self.ini()
-        pass
 
     def ini(self):
         pass
     def deg2rad(self,angle):
         # if in radians mode, does nothing, if in degree it will convert
         #  angle (assumed to be in degrees) to radians
-        if self.parent.radians:
+        if self.parent.options["radians"]:
             return angle
         else:
             return math.radians(angle)
+    def rad2deg(self,angle):
+        # if in radians mode, does nothing, if in degree it will convert
+        #  angle (assumed to be in degrees) to radians
+        if self.parent.options["radians"]:
+            return angle
+        else:
+            return math.degrees(angle)
 
     def exe(self,command_position):
         ##TODO - parse the command string to see if it should operate on
@@ -46,93 +52,114 @@ class cli_hook(object):
 
 ### Implementation for the operation hooks
 class add(cli_hook):
-    def ini(self):
-        self.names.append("+")
-        self.desc="Adds previous two arguments in stack"
+    aliases = ["+","add"]
+    desc  = "Adds previous two arguments in stack"
     def run(self,args):
         return args[1] + args[2]
 
 class sub(cli_hook):
-    def ini(self):
-        self.names.append("-")
-        self.desc="Subtracts previous two arguments in stack"
+    aliases = ["-","sub"]
+    desc="Subtracts previous two arguments in stack"
     def run(self,args):
         return args[2] - args[1]
 
 class mult(cli_hook):
-    def ini(self):
-        self.names.append("*")
-        self.desc="Multiplies previous two arguments in stack"
+    aliases = ["*","mult"]
+    desc="Multiplies previous two arguments in stack"
     def run(self,args):
         return args[2] * args[1]
 
 class div(cli_hook):
-    def ini(self):
-        self.names.append("/")
-        self.desc="Divides previous two arguments in stack"
+    aliases = ["div","/"]
+    desc="Divides previous two arguments in stack"
     def run(self,args):
         return args[2] / args[1]
 
 class sqr(cli_hook):
-    def ini(self):
-        self.args=1
-        self.desc="Squares previous argument in stack"
+    aliases = ["sqr","square"]
+    args =1
+    desc="Squares previous argument in stack"
     def run(self,args):
         return args[1]**2
 
 class pow(cli_hook):
-    def ini(self):
-        self.names.append("^")
+    aliases = ["pow","^"]
     def run(self,args):
         return args[2]**args[1]
 
 class sqrt(cli_hook):
-    def ini(self):
-        self.args=1
-        self.desc="Square root of previous argument in stack"
+    args = 1
+    aliases = ["sqrt"]
+    desc="Square root of previous argument in stack"
     def run(self,args):
         return args[1]**0.5
 
 class sine(cli_hook):
-    def ini(self):
-        self.args=1
-        self.names.append("sin")
-        self.desc="Sine of previous argument in stack"
+    args=1
+    aliases = ["sine","sin"]
+    desc="Sine of previous argument in stack"
     def run(self,args):
         if type(args[1])==complex:
             return cmath.sin(args[1])
         else:
             return math.sin(self.deg2rad(args[1]))
 
+class asin(cli_hook):
+    args=1
+    aliases = ["asin","asine"]
+    desc="arcsine of previous argument in stack"
+    def run(self,args):
+        if type(args[1])==complex:
+            return self.rad2deg(cmath.asin(args[1]))
+        else:
+            return self.rad2deg(math.asin(args[1]))
+
 class cos(cli_hook):
-    def ini(self):
-        self.args=1
-        self.desc="cosine of previous argument in stack"
+    args=1
+    aliases = ["cos","cosine"]
+    desc="cosine of previous argument in stack"
     def run(self,args):
         if type(args[1])==complex:
             return cmath.cos(args[1])
         else:
             return math.cos(self.deg2rad(args[1]))
 
+class acos(cli_hook):
+    args = 1
+    aliases = ["acos","arccos","acosine"]
+    desc="arccosine of previous argument in stack"
+    def run(self,args):
+        if type(args[1])==complex:
+            return self.rad2deg(cmath.acos(args[1]))
+        else:
+            return self.rad2deg(math.acos(args[1]))
+
 class tan(cli_hook):
-    def ini(self):
-        self.args=1
-        self.desc="tangent of previous argument in stack"
+    args = 1
+    aliases = ["tan","tangent"]
+    desc="tangent of previous argument in stack"
     def run(self,args):
         if type(args[1])==complex:
             return cmath.tan(args[1])
         else:
             return math.tan(self.deg2rad(args[1]))
 
+class atan(cli_hook):
+    args=1
+    aliases = ["atan","arctan","atangent"]
+    desc="arctangent of previous argument in stack"
+    def run(self,args):
+        if type(args[1])==complex:
+            return self.rad2deg(cmath.atan(args[1]))
+        else:
+            return self.rad2deg(math.atan(args[1]))
+
 class delete(cli_hook):
-    def ini(self):
-        self.names.append("del")
-        self.args=0
+    args=0
+    aliases = ["del","delete","shitcan","nuke","fuckit"]
     def exe(self,command_position):
         self.parent.stack=[]
         return 0
-
-
 
 class rpn:
     def __init__(self,fname=None):
@@ -141,8 +168,7 @@ class rpn:
         self.fname = fname
         self.error=False
         self.hex=False
-        self.options=""
-        self.radians=False
+        self.options={"hex":False,"radians":False}
         self.statstrings=[]
 
         if self.fname:
@@ -157,8 +183,9 @@ class rpn:
                         value=string.strip(line)
                     if type(value) == str:
                         if value[0:4] == "opt:":
-                            #print "Options = %s"%value
-                            self.options=value.split(":")[1]
+                            print "Options = %s"%value[4:]
+                            self.options=eval(value[4:])
+                            pass
                     else:
                         self.stack.insert(0,value)
 
@@ -169,7 +196,7 @@ class rpn:
                         self.hooks.append(obj(self))
 
     def __str__(self):
-        s="Options: %s\n"%self.options
+        s="Options: %s\n"%str(self.options)
         for i in range(len(self.stack)-1,-1,-1):
             optstr=""
             if self.hex:
@@ -196,7 +223,7 @@ class rpn:
                 command=command.split(":")
 
                 for op in self.hooks:
-                    if command[0] in op.names:
+                    if command[0] in op.aliases:
                         position = op.exe(position)
                         break
 
@@ -269,42 +296,6 @@ class rpn:
         except:
             self.stack.pop(command_position)
             return command_position
-
-    def asin(self,command_position,args):
-        try:
-            if ((type(self.stack[command_position+1])==complex) or (self.stack[command_position+1]>1)):
-                value=cmath.asin(self.stack[command_position+1])
-            else:
-                value=math.asin(self.stack[command_position+1])
-            self.stack.pop(command_position+1)
-            self.stack[command_position]=value
-            return command_position
-        except:
-            return self.err_handler(command_position,"Bad arc sine attempted, ignoring command")
-
-    def acos(self,command_position,args):
-        try:
-            if ((type(self.stack[command_position+1])==complex) or (self.stack[command_position+1]>1)):
-                value=cmath.acos(self.stack[command_position+1])
-            else:
-                value=math.acos(self.stack[command_position+1])
-            self.stack.pop(command_position+1)
-            self.stack[command_position]=value
-            return command_position
-        except:
-            return self.err_handler(command_position,"Bad arc cosine attempted, ignoring command")
-
-    def atan(self,command_position,args):
-        try:
-            if type(self.stack[command_position+1])==complex:
-                value=cmath.atan(self.stack[command_position+1])
-            else:
-                value=math.atan(self.stack[command_position+1])
-            self.stack.pop(command_position+1)
-            self.stack[command_position]=value
-            return command_position
-        except:
-            return self.err_handler(command_position,"Bad arc tangent attempted, ignoring command")
 
     def hexadec(self,command_position,args):
         try:
